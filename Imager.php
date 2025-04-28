@@ -42,6 +42,7 @@ class Imager
      * 2. Than use image from quarantine for rsize to size you need and put with random generated name (crypt) to desired dir.
      *     (to keep track, record in database original filename and new generated name)
      * 3. repeat step 2 using desired size to make thumb (in dir dedicated for thumbs sith same name as image in setp 2.)
+     * 
      */
     public function resize(string $sourcePath = "", string $whereToPlace = "", int $imw = 200, int $imh = 150, string $mode = "normal", int $rotate = 0): bool
     {
@@ -187,8 +188,9 @@ class Imager
             }
 
             // Destroy image.
-            if (!@imagedestroy($imt)) {
-                $this->messages['errors'][] = "imagedestroy failed.";
+            if (!imagedestroy($imt)) {
+                $error = error_get_last();
+                $this->messages['errors'][] = "imagedestroy failed: " . $error['message'];
             }
 
             return true;
@@ -466,9 +468,9 @@ class Imager
             return '';
         }
 
-        $extension = trim(substr($filePath, strrpos($filePath, '.') + 1));
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
-        if (in_array(strtolower($extension), $this->allowedExtexsions)) {
+        if (in_array($extension, $this->allowedExtexsions)) {
             return $extension;
         }
 
