@@ -43,7 +43,7 @@ class Imager
      *     (to keep track, record in database original filename and new generated name)
      * 3. repeat step 2 using desired size to make thumb (in dir dedicated for thumbs sith same name as image in setp 2.)
      */
-    public function resize($sourcePath = "", $whereToPlace = "", $imw = 200, $imh = 150, $mode = "normal", $rotate = 0)
+    public function resize(string $sourcePath = "", string $whereToPlace = "", int $imw = 200, int $imh = 150, string $mode = "normal", int $rotate = 0): bool
     {
         if (!$this->validate($sourcePath)) {
             return false;
@@ -143,11 +143,13 @@ class Imager
                         }
                 }
 
-                if (!@chmod($sourcePath, 0766)) {
-                    $this->messages['errors'][] = "chmod sourcePath failed.";
+                if (!chmod($sourcePath, 0766)) {
+                    $error = error_get_last();
+                    $this->messages['errors'][] = "chmod sourcePath failed: " . $error['message'];
                 }
-                if (!@chmod($whereToPlace, 0766)) {
-                    $this->messages['errors'][] = "chmod whereToPlace failed.";
+                if (!chmod($whereToPlace, 0766)) {
+                    $error = error_get_last();
+                    $this->messages['errors'][] = "chmod whereToPlace failed: " . $error['message'];
                 }
                 return true;
             }
@@ -274,7 +276,7 @@ class Imager
     {
         # Find aspect ratio
         $aspectRatio = $this->getAspectRatio($width, $height);
-        $orientation = $this->getOrienration($width, $height);
+        $orientation = $this->getOrientation($width, $height);
 
         // Don't allow upscaling. (if image is smaller than max size, keep it as is)
         // Keep aspect ratio.
@@ -330,7 +332,7 @@ class Imager
      * @return int
      * Note: 0 - square, 1 - landscape, 2 - portrait (defined in constants)
      */
-    private function getOrienration(int $width, int $height): int
+    private function getOrientation(int $width, int $height): int
     {
         if ($width > $height) {
             return self::LANDSCAPE;
@@ -596,6 +598,7 @@ class Imager
 
         if ($imt && $rotatedImage) {
             $this->makeImage($rotatedImage, $imageDestination);
+            $result = true;
         }
 
         @imagedestroy($imt);
