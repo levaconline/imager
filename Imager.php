@@ -1,21 +1,22 @@
-<?php 
+<?php
+
 /**
-* This class can rotate, resize, crop or strech or convert to grayscale an image.
-* Suported images types are: jpg, jpeg, gif, webp and png.
-* 
-* Inputs: 
-* @var $sourcePath 		- path to original image
-* @var $whereToPlace 	- path to new, resized image.  (default is original source file - if this param is not set, original will be replaced with new resized image)
-* @var $imw 			- width of new resized image.  (default: 200)
-* @var $imh				- height of new resized image. (default: 150)
-* @var $mode			- mode (normal, crop, strech)
-* 
-* @author Aleksandar Todorovic<aleksandar.todorovic.xyz@gmail.com>
-* @created 2018.02.14.
-* 
-**/
+ * This class can rotate, resize, crop or strech or convert to grayscale an image.
+ * Suported images types are: jpg, jpeg, gif, webp and png.
+ * 
+ * Inputs: 
+ * @var $sourcePath 		- path to original image
+ * @var $whereToPlace 	- path to new, resized image.  (default is original source file - if this param is not set, original will be replaced with new resized image)
+ * @var $imw 			- width of new resized image.  (default: 200)
+ * @var $imh				- height of new resized image. (default: 150)
+ * @var $mode			- mode (normal, crop, strech)
+ * 
+ * @author Aleksandar Todorovic<aleksandar.todorovic.xyz@gmail.com>
+ * @created 2018.02.14.
+ * 
+ **/
 class Imager
-{	
+{
 	private $messages       = [];
 	private $allowedExtexsions = ['jpg', 'jpeg', 'gif', 'png', 'webp'];
 	private $allowedMIMETypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -25,7 +26,7 @@ class Imager
 	private const SQUARE 	= 0;
 	private const LANDSCAPE = 1;
 	private const PORTRAIT 	= 2;
-	
+
 	/**
 	 * Resize image.
 	 * @param string $sourcePath
@@ -50,13 +51,13 @@ class Imager
 
 		// if sourcePath not sent go back
 		if (trim($sourcePath) === "") {
-		    $this->messages['errors'][] = "File source path sent.";
-		    return false;
+			$this->messages['errors'][] = "File source path sent.";
+			return false;
 		}
-		
+
 		if (!file_exists($sourcePath)) {
-		    $this->messages['errors'][] = "File '" . $sourcePath . "' not found.";
-		    return false;
+			$this->messages['errors'][] = "File '" . $sourcePath . "' not found.";
+			return false;
 		}
 
 		// Get extensions. 
@@ -74,11 +75,11 @@ class Imager
 			$newExtension = $originalExtension;
 		}
 
-        // If no destination file name, simple modify original image.
+		// If no destination file name, simple modify original image.
 		if ($whereToPlace == "") {
-		    $whereToPlace = $sourcePath;
+			$whereToPlace = $sourcePath;
 		}
-		
+
 		# check size
 		$imageDat = $this->getTheImageSize($sourcePath);
 		$width = $imageDat['w'];
@@ -96,18 +97,16 @@ class Imager
 		}
 
 		if ($width > $imw || $height > $imh) {
-		
+
 			if (!$imt) {
 				$this->messages['errors'][] = "Plaese check if GD enabled.";
 			} else {
-				if ($mode == "strech") { 
+				if ($mode == "strech") {
 					// create new
 					$im = $this->strech($imt, $imw, $imh);
-					
 				} elseif ($mode == "crop") {
 					// Crop image to new size. (Will be cropped).
 					$im = $this->crop($imt, $imw, $imh, $width, $height);
-
 				} elseif ($mode == "normal") {
 					// Proportional resize image to new size. (Will be resized).
 					$im = $this->proportionalResize($imt, $imw, $imh, $width, $height, $imw, $imh);
@@ -119,70 +118,68 @@ class Imager
 				# Like shadow
 				switch ($newExtension) {
 					case 'jpg':
-						if (!imagejpeg($im, $whereToPlace, 80)){
+						if (!imagejpeg($im, $whereToPlace, 80)) {
 							$this->messages['errors'][] = "Failed imagejpeg.";
 						}
 						break;
 					case 'jpeg':
-						if (!imagejpeg($im, $whereToPlace, 80)){
+						if (!imagejpeg($im, $whereToPlace, 80)) {
 							$this->messages['errors'][] = "Failed imagejpeg.";
 						}
 						break;
 					case 'gif':
-						if (!imagegif($im, $whereToPlace)){
+						if (!imagegif($im, $whereToPlace)) {
 							$this->messages['errors'][] = "Failed imagegif.";
 						}
 						break;
 					case 'png':
-						if (!imagepng($im, $whereToPlace)){
+						if (!imagepng($im, $whereToPlace)) {
 							$this->messages['errors'][] = "Failed imagepng.";
 						}
 						break;
 					case 'webp':
-						if (!imagewebp($im, $whereToPlace, 90)){
+						if (!imagewebp($im, $whereToPlace, 90)) {
 							$this->messages['errors'][] = "Failed imagewebp.";
 						}
 				}
-				
-				if(!@chmod($sourcePath, 0766)){
+
+				if (!@chmod($sourcePath, 0766)) {
 					$this->messages['errors'][] = "chmod sourcePath failed.";
 				}
-				if (!@chmod($whereToPlace, 0766)){
+				if (!@chmod($whereToPlace, 0766)) {
 					$this->messages['errors'][] = "chmod whereToPlace failed.";
 				}
 				return true;
 			}
-			
-			
 		} else {
-		
+
 			# Image is smaller than new size. Just copy.
 			switch ($newExtension) {
 				case 'jpg':
-					if(!imagejpeg($imt, $whereToPlace, 80)) {
+					if (!imagejpeg($imt, $whereToPlace, 80)) {
 						$this->messages['errors'][] = "Failed imagejpeg.";
 					}
 					break;
 				case 'jpeg':
-					if(!imagejpeg($imt, $whereToPlace, 80)) {
+					if (!imagejpeg($imt, $whereToPlace, 80)) {
 						$this->messages['errors'][] = "Failed imagejpeg.";
 					}
 					break;
 				case 'gif':
-					if(!imagegif($imt, $whereToPlace)) {
+					if (!imagegif($imt, $whereToPlace)) {
 						$this->messages['errors'][] = "Failed imagegif.";
 					}
 					break;
 				case 'png':
-					if(!imagepng($imt, $whereToPlace)) {
+					if (!imagepng($imt, $whereToPlace)) {
 						$this->messages['errors'][] = "Failed imagepng.";
 					}
 					break;
 				case 'webp':
-    				if(!imagewebp($imt, $whereToPlace, 90)) {
+					if (!imagewebp($imt, $whereToPlace, 90)) {
 						$this->messages['errors'][] = "Failed imagewebp.";
 					}
-    				break;
+					break;
 				default:
 					$this->messages['errors'][] = "Non supported {$newExtension}.";
 			}
@@ -207,11 +204,11 @@ class Imager
 	{
 		// create new
 		$im = @imagecreatetruecolor($imw, $imh);
-		
+
 		// Copy old to new and destroy old. (image would be mostly  deformed as expected)
 		imagecopyresampled($im, $imt, 0, 0, 0, 0, $imw, $imh, imagesx($imt), imagesy($imt));
 		imagedestroy($imt);
-		
+
 		return $im;
 	}
 
@@ -234,31 +231,31 @@ class Imager
 
 		# Create new
 		$imTemp = @imagecreatetruecolor($tempw, $temph);
-		
+
 		# Copy old to new and destroy old
 		imagecopyresampled($imTemp, $imt, 0, 0, 0, 0, $tempw, $temph, imagesx($imt), imagesy($imt));
 		imagedestroy($imt);
-		
+
 		# Create new (for cropping)
 		$im = @imagecreatetruecolor($imw, $imh);
-		
+
 		// Cropy old to new and destroy old
 		// Find position for cropping.
 		// TODO: define details what part of image will be cropped.
-		$ls = 0; 
+		$ls = 0;
 		$rs = 0;
 
 		// Crop positionante
-		if($tempw > $imw) {
+		if ($tempw > $imw) {
 			$ls = ceil(($tempw - $imw) / 2);
 			$rs = 0;
 		}
 		// end crop position
-		if(!imagecopy($im, $imTemp, 0, 0, $ls, $rs, $tempw, $temph)){
+		if (!imagecopy($im, $imTemp, 0, 0, $ls, $rs, $tempw, $temph)) {
 			$this->messages['errors'][] = "Can't imagecopy.";
 		}
 		imagedestroy($imTemp);
-							
+
 		return $im;
 	}
 
@@ -287,28 +284,28 @@ class Imager
 		}
 		if ($height >  $imh) {
 			$height = $imh;
-			$width = ceil( $height * $aspectRatio);
+			$width = ceil($height * $aspectRatio);
 		}
 
 		// Just remember original size for future TODO: check if needed.
 		$tempw = $width;
 		$temph = $height;
-		
+
 		# Create new
 		$im = imagecreatetruecolor($tempw, $temph);
-		if (!$im){
+		if (!$im) {
 			$this->messages['errors'][] = "Can't created img: '" . $tempw . "x" .  $temph;
 			return false;
 		}
 
 		# Copy old to new and destroy old
 		$result = imagecopyresampled($im, $imt, 0, 0, 0, 0, $tempw, $temph, imagesx($imt), imagesy($imt));
-		if(!$result){
+		if (!$result) {
 			$this->messages['errors'][] = "Failed imagecopyresampled : '" . $tempw . "x" .  $temph;
 		}
 
 		// Destroy temportary image.
-		if (!imagedestroy($imt)){
+		if (!imagedestroy($imt)) {
 			$this->messages['errors'][] = "Failed imagedestroy";
 		}
 
@@ -324,7 +321,7 @@ class Imager
 	private function getAspectRatio(int $width, int $height): float
 	{
 		return $width / $height;
-	}	
+	}
 
 	/**
 	 * Get image orientation.
@@ -342,7 +339,7 @@ class Imager
 		} else {
 			return self::SQUARE;
 		}
-	}	
+	}
 
 	/**
 	 * Create image from source.
@@ -367,19 +364,19 @@ class Imager
 		//Try to create tempImg Based on extension. 
 		// TODO: Check type.
 		if ($originalExtension == "jpg" || $originalExtension == "jpeg") {
-		    $imt = imagecreatefromjpeg($imagepath);
+			$imt = imagecreatefromjpeg($imagepath);
 		}
-		
+
 		if ($originalExtension == "png") {
-		    $imt = imagecreatefrompng($imagepath);
+			$imt = imagecreatefrompng($imagepath);
 		}
-		
+
 		if ($originalExtension == "gif") {
-		    $imt = imagecreatefromgif($imagepath);
+			$imt = imagecreatefromgif($imagepath);
 		}
-		
+
 		if ($originalExtension == "webp") {
-		    $imt = imagecreatefromwebp($imagepath);
+			$imt = imagecreatefromwebp($imagepath);
 		}
 
 		return $imt;
@@ -407,17 +404,17 @@ class Imager
 				}
 				break;
 			case 'jpeg':
-				if(!imagejpeg($imt, $whereToPlace, 80)) {
+				if (!imagejpeg($imt, $whereToPlace, 80)) {
 					$this->messages['errors'][] = "Error: Failed imagejpeg";
 				}
 				break;
 			case 'gif':
-				if(!imagegif($imt, $whereToPlace)) {
+				if (!imagegif($imt, $whereToPlace)) {
 					$this->messages['errors'][] = "Error: Failed imagegif";
 				}
 				break;
 			case 'png':
-				if(!imagepng($imt, $whereToPlace)) {
+				if (!imagepng($imt, $whereToPlace)) {
 					$this->messages['errors'][] = "Error: Failed imagepng";
 				}
 				break;
@@ -454,7 +451,7 @@ class Imager
 
 		return ['w' => $width, 'h' => $height, 'mime' => $mime];
 	}
-	
+
 	/**
 	 * Get file extension.
 	 * @param string $filePath
@@ -462,21 +459,21 @@ class Imager
 	 */
 	public function getExtension(string $filePath = ''): string
 	{
-	    if (!file_exists($filePath) || !is_file($filePath)) {
-	        $this->messages['errors'][] = "File '" . $filePath . "' not found.";
-	        return '';
-	    }
-	    
-	    $extension = trim(substr($filePath, strrpos($filePath, '.') + 1));
-	    
-	    if (in_array(strtolower($extension), $this->allowedExtexsions)) {
-	        return $extension;
-	    }
+		if (!file_exists($filePath) || !is_file($filePath)) {
+			$this->messages['errors'][] = "File '" . $filePath . "' not found.";
+			return '';
+		}
+
+		$extension = trim(substr($filePath, strrpos($filePath, '.') + 1));
+
+		if (in_array(strtolower($extension), $this->allowedExtexsions)) {
+			return $extension;
+		}
 
 		$this->messages['errors'][] = "Extension is not '" . $filePath . "' not found.";
 		return '';
 	}
-	
+
 	/**
 	 * Get file name without extension.
 	 * @param string $filePath
@@ -484,11 +481,11 @@ class Imager
 	 */
 	public function getFileName(string $filePath = ''): mixed
 	{
-	    $fileName = substr($filePath, strrpos($filePath, '/'));
-	    // Remove extension
-	    return substr($fileName, 0, strrpos($filePath, '.'));
+		$fileName = substr($filePath, strrpos($filePath, '/'));
+		// Remove extension
+		return substr($fileName, 0, strrpos($filePath, '.'));
 	}
-		
+
 	/**
 	 * Try to read exif if exists. (Not all images have exif data).
 	 * Get exif data from image.
@@ -561,7 +558,7 @@ class Imager
 				$this->messages['errors'][] = "Extension does not fit to MIME type.";
 				return '';
 			}
-			
+
 			// MIME type is allowed and fit to extension.
 			return $mt;
 		}
@@ -586,7 +583,7 @@ class Imager
 		if (!$this->validate($imagepath)) {
 			$result = false;
 		}
-		
+
 		// If destination not posted, revrite image.
 		if ($imageDestination === '') {
 			$imageDestination = $imagepath;
@@ -606,7 +603,7 @@ class Imager
 
 		return $result;
 	}
-	
+
 	/**
 	 * Validate image.
 	 * @param string $imagePath
@@ -615,15 +612,15 @@ class Imager
 	private function validate(string $imagePath): bool
 	{
 		// Check file existance.
-	    if (!file_exists($imagePath) || !is_file($imagePath)) {
-	        $this->messages['errors'][] = "Image source file not found.";
-	        return false;
-	    }
+		if (!file_exists($imagePath) || !is_file($imagePath)) {
+			$this->messages['errors'][] = "Image source file not found.";
+			return false;
+		}
 
 		// Check MIME type
-		if (!$this->getMIME($imagePath)){
-	        $this->messages['errors'][] = "MIME type not fit.";
-	        return false;
+		if (!$this->getMIME($imagePath)) {
+			$this->messages['errors'][] = "MIME type not fit.";
+			return false;
 		}
 
 		return true;
@@ -661,7 +658,7 @@ class Imager
 		}
 
 		return false;
-	}	
+	}
 
 	/**
 	 * Convert image to gray scale.
