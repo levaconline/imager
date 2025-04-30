@@ -17,15 +17,15 @@
  **/
 class Imager
 {
-    private $messages       = [];
+    private $messages = [];
     private $allowedExtexsions = ['jpg', 'jpeg', 'gif', 'png', 'webp'];
     private $allowedMIMETypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     // Demand extension to fit mime type - double check.
     private $extMime = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'png' => 'image/png', 'webp' => 'image/webp'];
 
-    private const SQUARE     = 0;
+    private const SQUARE = 0;
     private const LANDSCAPE = 1;
-    private const PORTRAIT     = 2;
+    private const PORTRAIT = 2;
 
     /**
      * Resize image.
@@ -203,8 +203,9 @@ class Imager
      * @param int $imw
      * @param int $imh
      * @return \GdImage | false	
+     * 
      */
-    private function strech($imt, $imw, $imh): \GdImage | false
+    private function strech(\GdImage $imt, int $imw, int $imh): \GdImage | false
     {
         // create new
         $im = @imagecreatetruecolor($imw, $imh);
@@ -218,15 +219,16 @@ class Imager
 
     /**
      * Crop image to new size. (Will be cropped).
-     * TODO: efine details what part of image will be cropped.
+     * TODO: Define details what part of image will be cropped.
      * @param \GdImage $imt
      * @param int $imw
      * @param int $imh
      * @param int $width
      * @param int $height
      * @return \GdImage | false
+     * 
      */
-    private function crop($imt, $imw, $imh, $width, $height): \GdImage | false
+    private function crop(\GdImage $imt, int $imw, int $imh, int $width, int $height): \GdImage | false
     {
         $aspectRatio = $this->getAspectRatio($width, $height);
 
@@ -273,8 +275,9 @@ class Imager
      * @param int $maxWidth
      * @param int $maxHeight
      * @return \GdImage | false
+     * 
      */
-    private function proportionalResize($imt, $imw, $imh, int $width, int $height, int $maxWidth, int $maxHeight): \GdImage | false
+    private function proportionalResize(\GdImage $imt, int $imw, int $imh, int $width, int $height, int $maxWidth, int $maxHeight): \GdImage | false
     {
         # Find aspect ratio
         $aspectRatio = $this->getAspectRatio($width, $height);
@@ -321,6 +324,7 @@ class Imager
      * @param int $width
      * @param int $height
      * @return float
+     * 
      */
     private function getAspectRatio(int $width, int $height): float
     {
@@ -438,6 +442,7 @@ class Imager
      * @return array 'w', 'h', 'mime'
      * @see https://www.php.net/manual/en/function.getimagesize.php
      * @see https://www.php.net/manual/en/function.getimagesizeinfo.php
+     * 
      */
     private function getTheImageSize(string $filePath = ''): array
     {
@@ -460,6 +465,7 @@ class Imager
      * Get file extension.
      * @param string $filePath
      * @return string
+     * 
      */
     public function getExtension(string $filePath = ''): string
     {
@@ -482,6 +488,7 @@ class Imager
      * Get file name without extension.
      * @param string $filePath
      * @return mixed
+     * 
      */
     public function getFileName(string $filePath = ''): mixed
     {
@@ -546,6 +553,7 @@ class Imager
      * Get MIME type of image.
      * @param string $imagePath
      * @return string
+     * 
      */
     private function getMIME(string $imagePath): string
     {
@@ -578,8 +586,9 @@ class Imager
      * @param string $imageDestination
      * @param int $angle
      * @return bool
+     * 
      */
-    public function rotateImage(string $imagepath,  $imageDestination = "", int $angle)
+    public function rotateImage(string $imagepath,  string $imageDestination = "", int $angle): bool
     {
         $result = false;
 
@@ -642,6 +651,12 @@ class Imager
     {
         $result = false;
 
+        $modes = [0, 1, 2, 3]; // 0 - horizontal, 1 - vertical, 2 - both, 3 - both and rotate 90 degrees.
+        if (!in_array($mode, $modes)) {
+            $this->messages['errors'][] = "Flip mode not supported.";
+            return false;
+        }
+
         // Validate
         if (!$this->validate($imagepath)) {
             $result = false;
@@ -659,10 +674,10 @@ class Imager
             imageflip($imt, $mode);
             $this->makeImage($imt, $imageDestination);
             imagedestroy($imt);
-            return true;
+            $result = true;
         }
 
-        return false;
+        return $result;
     }
 
     /**
@@ -670,6 +685,7 @@ class Imager
      * @param string $imagepath
      * @param string $imageDestination
      * @return bool
+     * 
      */
     public function toGrayScale(string $imagepath, string $imageDestination = ''): bool
     {
@@ -701,7 +717,7 @@ class Imager
      * Messages getter.
      * @return array
      */
-    public function getMessages(): array
+    public function getMessages(): array 
     {
         return $this->messages;
     }
