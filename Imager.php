@@ -428,10 +428,10 @@ class Imager
      */
     public function getExtension(string $filePath = ''): string
     {
-        /*if (!file_exists($filePath) || !is_file($filePath)) {
+        if (!file_exists($filePath) || !is_file($filePath)) {
             $this->messages['errors'][] = "File '" . $filePath . "' not found.";
             return '';
-        }*/
+        }
 
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
@@ -731,7 +731,7 @@ class Imager
      * Messages getter.
      * @return array
      */
-    public function getMessages(): array
+    public function getMessages(): array 
     {
         return $this->messages;
     }
