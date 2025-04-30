@@ -50,14 +50,22 @@ class Imager
             return false;
         }
 
+        if ($rotate < 0 || $rotate > 359) {
+            $this->messages['errors'][] = 'Invalid rotation angle.';
+            return false;
+        }
+
         // if sourcePath not sent go back
         if (trim($sourcePath) === "") {
             $this->messages['errors'][] = "File source path sent.";
             return false;
         }
 
-        if (!file_exists($sourcePath)) {
-            $this->messages['errors'][] = "File '" . $sourcePath . "' not found.";
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $sourcePath);
+        finfo_close($finfo);
+        if (!in_array($mimeType, $this->allowedMIMETypes)) {
+            $this->messages['errors'][] = "Invalid file type.";
             return false;
         }
 
@@ -117,38 +125,15 @@ class Imager
                 }
 
                 # Like shadow
-                switch ($newExtension) {
-                    case 'jpg':
-                        if (!imagejpeg($im, $whereToPlace, 80)) {
-                            $this->messages['errors'][] = "Failed imagejpeg.";
-                        }
-                        break;
-                    case 'jpeg':
-                        if (!imagejpeg($im, $whereToPlace, 80)) {
-                            $this->messages['errors'][] = "Failed imagejpeg.";
-                        }
-                        break;
-                    case 'gif':
-                        if (!imagegif($im, $whereToPlace)) {
-                            $this->messages['errors'][] = "Failed imagegif.";
-                        }
-                        break;
-                    case 'png':
-                        if (!imagepng($im, $whereToPlace)) {
-                            $this->messages['errors'][] = "Failed imagepng.";
-                        }
-                        break;
-                    case 'webp':
-                        if (!imagewebp($im, $whereToPlace, 90)) {
-                            $this->messages['errors'][] = "Failed imagewebp.";
-                        }
+                if (!$this->saveImage($im, $whereToPlace, $newExtension)) {
+                    $this->messages['errors'][] = "Failed to save image.";
                 }
 
-                if (!chmod($sourcePath, 0766)) {
+                if (!chmod($sourcePath, 0644)) {
                     $error = error_get_last();
                     $this->messages['errors'][] = "chmod sourcePath failed: " . $error['message'];
                 }
-                if (!chmod($whereToPlace, 0766)) {
+                if (!chmod($whereToPlace, 0644)) {
                     $error = error_get_last();
                     $this->messages['errors'][] = "chmod whereToPlace failed: " . $error['message'];
                 }
@@ -157,34 +142,8 @@ class Imager
         } else {
 
             # Image is smaller than new size. Just copy.
-            switch ($newExtension) {
-                case 'jpg':
-                    if (!imagejpeg($imt, $whereToPlace, 80)) {
-                        $this->messages['errors'][] = "Failed imagejpeg.";
-                    }
-                    break;
-                case 'jpeg':
-                    if (!imagejpeg($imt, $whereToPlace, 80)) {
-                        $this->messages['errors'][] = "Failed imagejpeg.";
-                    }
-                    break;
-                case 'gif':
-                    if (!imagegif($imt, $whereToPlace)) {
-                        $this->messages['errors'][] = "Failed imagegif.";
-                    }
-                    break;
-                case 'png':
-                    if (!imagepng($imt, $whereToPlace)) {
-                        $this->messages['errors'][] = "Failed imagepng.";
-                    }
-                    break;
-                case 'webp':
-                    if (!imagewebp($imt, $whereToPlace, 90)) {
-                        $this->messages['errors'][] = "Failed imagewebp.";
-                    }
-                    break;
-                default:
-                    $this->messages['errors'][] = "Non supported {$newExtension}.";
+            if (!$this->saveImage($imt, $whereToPlace, $newExtension)) {
+                $this->messages['errors'][] = "Failed to save image.";
             }
 
             // Destroy image.
@@ -195,6 +154,7 @@ class Imager
 
             return true;
         }
+        return false;
     }
 
     /**
@@ -391,6 +351,31 @@ class Imager
     }
 
     /**
+     * Save an image to a file based on its extension.
+     * @param \GdImage $image The image resource to save.
+     * @param string $filePath The destination file path.
+     * @param string $extension The file extension (e.g., jpg, png, etc.).
+     * @return bool True on success, false on failure.
+     */
+    private function saveImage(\GdImage $image, string $filePath, string $extension): bool
+    {
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                return imagejpeg($image, $filePath, 80);
+            case 'gif':
+                return imagegif($image, $filePath);
+            case 'png':
+                return imagepng($image, $filePath);
+            case 'webp':
+                return imagewebp($image, $filePath, 90);
+            default:
+                $this->messages['errors'][] = "Unsupported file extension: $extension.";
+                return false;
+        }
+    }
+
+    /**
      * Make picture using temporarry: imt.
      * @param \GdImage $imt
      * @param string $whereToPlace
@@ -405,34 +390,8 @@ class Imager
         }
 
         // Make picture.
-        switch ($extension) {
-            case 'jpg':
-                if (!imagejpeg($imt, $whereToPlace, 80)) {
-                    $this->messages['errors'][] = "Error: Failed imagejpeg";
-                }
-                break;
-            case 'jpeg':
-                if (!imagejpeg($imt, $whereToPlace, 80)) {
-                    $this->messages['errors'][] = "Error: Failed imagejpeg";
-                }
-                break;
-            case 'gif':
-                if (!imagegif($imt, $whereToPlace)) {
-                    $this->messages['errors'][] = "Error: Failed imagegif";
-                }
-                break;
-            case 'png':
-                if (!imagepng($imt, $whereToPlace)) {
-                    $this->messages['errors'][] = "Error: Failed imagepng";
-                }
-                break;
-            case 'webp':
-                if (!imagewebp($imt, $whereToPlace, 90)) {
-                    $this->messages['errors'][] = "Error: Failed imagewebp";
-                }
-                break;
-            default:
-                $this->messages['errors'][] = "Error: Non supported (" . $extension . ")";
+        if (!$this->saveImage($imt, $whereToPlace, $extension)) {
+            $this->messages['errors'][] = "Error: Failed to save image.";
         }
     }
 
@@ -469,10 +428,10 @@ class Imager
      */
     public function getExtension(string $filePath = ''): string
     {
-        if (!file_exists($filePath) || !is_file($filePath)) {
+        /*if (!file_exists($filePath) || !is_file($filePath)) {
             $this->messages['errors'][] = "File '" . $filePath . "' not found.";
             return '';
-        }
+        }*/
 
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
@@ -647,11 +606,11 @@ class Imager
      * @param int $mode
      * @return bool
      */
-    public function flipImage(string $imagepath, string $imageDestination = '', int $mode = 0): bool
+    public function flipImage(string $imagepath, string $imageDestination = '', int $mode = 1): bool
     {
         $result = false;
 
-        $modes = [0, 1, 2, 3]; // 0 - horizontal, 1 - vertical, 2 - both, 3 - both and rotate 90 degrees.
+        $modes = [1, 2, 3]; // 1 - horizontal, 2 - vertical, 3 - both.
         if (!in_array($mode, $modes)) {
             $this->messages['errors'][] = "Flip mode not supported.";
             return false;
@@ -671,7 +630,7 @@ class Imager
         $imt = $this->imgGdSourceTemporary($imagepath);
 
         if ($imt) {
-            imageflip($imt, $mode);
+            $result = imageflip($imt, $mode);
             $this->makeImage($imt, $imageDestination);
             imagedestroy($imt);
             $result = true;
@@ -681,15 +640,53 @@ class Imager
     }
 
     /**
-     * Convert image to gray scale.
+     * Convert image using one of filters.
      * @param string $imagepath
      * @param string $imageDestination
+     * @param int $filter
+     * @see https://www.php.net/manual/en/function.imagefilter.php
      * @return bool
      * 
      */
-    public function toGrayScale(string $imagepath, string $imageDestination = ''): bool
+    public function filterImage(string $imagepath, string $imageDestination = '', int $filter = 1, string $args = ''): bool
     {
         $result = false;
+
+        $allowedFilters = [
+            IMG_FILTER_NEGATE,
+            IMG_FILTER_GRAYSCALE,
+            IMG_FILTER_GAUSSIAN_BLUR,
+            IMG_FILTER_SELECTIVE_BLUR,
+            IMG_FILTER_EMBOSS,
+            IMG_FILTER_MEAN_REMOVAL,
+        ];
+
+        $allowedArgFilters = [
+            IMG_FILTER_BRIGHTNESS,
+            IMG_FILTER_CONTRAST,
+            IMG_FILTER_COLORIZE,
+            IMG_FILTER_EDGEDETECT,
+            IMG_FILTER_SMOOTH,
+            IMG_FILTER_PIXELATE,
+            IMG_FILTER_SCATTER,
+        ];
+
+        $argsDefinitions = [
+            2 => [-255, 255], // brightness
+            3 => [-100, 100], // contrast
+            4 => [[0, 255], [0, 255], [0, 255]], // colorize
+            5 => [0, 1], // edge
+            10 => [0, 1], // smooth
+            11 => [[0, 255], [0, 255]], // pixelate
+            12 => [[0, 255], [0, 255]], // scatter
+        ];
+
+
+        if (!in_array($filter, $allowedFilters) && (!in_array($filter, $allowedArgFilters) && $args === '')) {
+            $this->messages['errors'][] = "Filter not supported. Supported filters are: " . join(", ", $allowedFilters);
+            $this->messages['errors'][] = "Filter not supported without args. Supported filters are: " . $this->implodeMultidimensionalArray($argsDefinitions);
+            return false;
+        }
 
         // Validate
         if (!$this->validate($imagepath)) {
@@ -704,7 +701,7 @@ class Imager
         // Create temporarry img based on original.
         $imt = $this->imgGdSourceTemporary($imagepath);
 
-        if ($imt && imagefilter($imt, IMG_FILTER_GRAYSCALE)) {
+        if ($imt && imagefilter($imt, $filter)) {
             $this->makeImage($imt, $imageDestination);
         }
 
@@ -713,11 +710,28 @@ class Imager
         return $result;
     }
 
+    private function implodeMultidimensionalArray($array): string
+    {
+        $val = '';
+        if (is_array($array) && count($array) > 0) {
+            foreach ($array as $key => $element) {
+                if (is_array($element)) {
+                    $val .= $this->implodeMultidimensionalArray($element);
+                } else {
+                    $val .= $key . '=' . $element . '&';
+                }
+            }
+        } else {
+            $val = $array;
+        }
+        return rtrim($val, '&');
+    }
+
     /**
      * Messages getter.
      * @return array
      */
-    public function getMessages(): array 
+    public function getMessages(): array
     {
         return $this->messages;
     }
