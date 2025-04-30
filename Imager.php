@@ -588,7 +588,7 @@ class Imager
      * @return bool
      * 
      */
-    public function rotateImage(string $imagepath,  string $imageDestination = "", int $angle): bool
+    public function rotateImage(string $imagepath,  string $imageDestination = "", int $angle = 0): bool
     {
         $result = false;
 
