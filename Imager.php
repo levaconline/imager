@@ -28,6 +28,44 @@ class Imager
     private const PORTRAIT = 2;
 
     /**
+     * Filters that do not require arguments.
+     */
+    private array $allowedFilters = [
+        IMG_FILTER_NEGATE,
+        IMG_FILTER_GRAYSCALE,
+        IMG_FILTER_GAUSSIAN_BLUR,
+        IMG_FILTER_SELECTIVE_BLUR,
+        IMG_FILTER_EMBOSS,
+        IMG_FILTER_MEAN_REMOVAL,
+    ];
+
+    /**
+     * Filters that require arguments.
+     */
+    private array $allowedArgFilters = [
+        IMG_FILTER_BRIGHTNESS,
+        IMG_FILTER_CONTRAST,
+        IMG_FILTER_COLORIZE,
+        IMG_FILTER_EDGEDETECT,
+        IMG_FILTER_SMOOTH,
+        IMG_FILTER_PIXELATE,
+        IMG_FILTER_SCATTER,
+    ];
+
+    /**
+     * Filter arguments definitions.
+     */
+    private array $argsDefinitions = [
+        2 => ['arg_count' => 1, 'range' => [-255, 255]], // brightness
+        3 =>  ['arg_count' => 1, 'range' => [-100, 100]], // contrast
+        4 => ['arg_count' => 3, 'range' => [[0, 255], [0, 255], [0, 255]]], // colorize
+        5 => ['arg_count' => 1, 'range' => [0, 1]], // edge
+        10 => ['arg_count' => 1, 'range' => [0, 1]], // smooth
+        11 => ['arg_count' => 2, 'range' => [[0, 255], [0, 255]]], // pixelate
+        12 => ['arg_count' => 2, 'range' => [[0, 255], [0, 255]]], // scatter
+    ];
+
+    /**
      * Resize image.
      * @param string $sourcePath
      * @param string $whereToPlace
@@ -297,6 +335,7 @@ class Imager
      * @param int $height
      * @return int
      * Note: 0 - square, 1 - landscape, 2 - portrait (defined in constants)
+     * 
      */
     private function getOrientation(int $width, int $height): int
     {
@@ -314,6 +353,7 @@ class Imager
      * @param string $imagepath
      * @param string $originalExtension
      * @return \GdImage | false
+     * 
      */
     private function imgGdSourceTemporary(string $imagepath, string $originalExtension = ''): \GdImage | false
     {
@@ -356,6 +396,7 @@ class Imager
      * @param string $filePath The destination file path.
      * @param string $extension The file extension (e.g., jpg, png, etc.).
      * @return bool True on success, false on failure.
+     * 
      */
     private function saveImage(\GdImage $image, string $filePath, string $extension): bool
     {
@@ -381,6 +422,7 @@ class Imager
      * @param string $whereToPlace
      * @param string $extension
      * @return void
+     * 
      */
     private function makeImage($imt, string $whereToPlace, string $extension = ''): void
     {
@@ -428,8 +470,8 @@ class Imager
      */
     public function getExtension(string $filePath = ''): string
     {
-        if (!file_exists($filePath) || !is_file($filePath)) {
-            $this->messages['errors'][] = "File '" . $filePath . "' not found.";
+        if ($filePath === '') {
+            $this->messages['errors'][] = "File path not sent.";
             return '';
         }
 
@@ -581,6 +623,7 @@ class Imager
      * Validate image.
      * @param string $imagePath
      * @return bool
+     * 
      */
     private function validate(string $imagePath): bool
     {
@@ -605,6 +648,7 @@ class Imager
      * @param string $imageDestination
      * @param int $mode
      * @return bool
+     * 
      */
     public function flipImage(string $imagepath, string $imageDestination = '', int $mode = 1): bool
     {
@@ -644,47 +688,18 @@ class Imager
      * @param string $imagepath
      * @param string $imageDestination
      * @param int $filter
+     * @param mixed $args
      * @see https://www.php.net/manual/en/function.imagefilter.php
      * @return bool
      * 
      */
-    public function filterImage(string $imagepath, string $imageDestination = '', int $filter = 1, string $args = ''): bool
+    public function filterImage(string $imagepath, string $imageDestination = '', int $filter = 1, mixed $args = null): bool
     {
         $result = false;
 
-        $allowedFilters = [
-            IMG_FILTER_NEGATE,
-            IMG_FILTER_GRAYSCALE,
-            IMG_FILTER_GAUSSIAN_BLUR,
-            IMG_FILTER_SELECTIVE_BLUR,
-            IMG_FILTER_EMBOSS,
-            IMG_FILTER_MEAN_REMOVAL,
-        ];
-
-        $allowedArgFilters = [
-            IMG_FILTER_BRIGHTNESS,
-            IMG_FILTER_CONTRAST,
-            IMG_FILTER_COLORIZE,
-            IMG_FILTER_EDGEDETECT,
-            IMG_FILTER_SMOOTH,
-            IMG_FILTER_PIXELATE,
-            IMG_FILTER_SCATTER,
-        ];
-
-        $argsDefinitions = [
-            2 => [-255, 255], // brightness
-            3 => [-100, 100], // contrast
-            4 => [[0, 255], [0, 255], [0, 255]], // colorize
-            5 => [0, 1], // edge
-            10 => [0, 1], // smooth
-            11 => [[0, 255], [0, 255]], // pixelate
-            12 => [[0, 255], [0, 255]], // scatter
-        ];
-
-
-        if (!in_array($filter, $allowedFilters) && (!in_array($filter, $allowedArgFilters) && $args === '')) {
-            $this->messages['errors'][] = "Filter not supported. Supported filters are: " . join(", ", $allowedFilters);
-            $this->messages['errors'][] = "Filter not supported without args. Supported filters are: " . $this->implodeMultidimensionalArray($argsDefinitions);
+        if (!in_array($filter, $this->allowedFilters) && (in_array($filter, $this->allowedArgFilters) && empty($args) )) {
+            $this->messages['errors'][] = "Filter not supported. Supported filters are: " . join(", ", $this->allowedFilters);
+            $this->messages['errors'][] = "Filter not supported without args. Supported filters are: \n" . var_export($this->argsDefinitions, true); //$this->implodeMultidimensionalArray($argsDefinitions);
             return false;
         }
 
@@ -701,30 +716,189 @@ class Imager
         // Create temporarry img based on original.
         $imt = $this->imgGdSourceTemporary($imagepath);
 
-        if ($imt && imagefilter($imt, $filter)) {
+        if ($imt) {
+            if (in_array($filter, $this->allowedArgFilters)) {
+                $arg = explode(' ', $args);
+
+                switch ($filter) {
+                    case IMG_FILTER_BRIGHTNESS:
+                        $this->brightnes($imt, $filter, $arg);
+                        break;
+                    case IMG_FILTER_CONTRAST:
+                        $this->contrast($imt, $filter, $arg);
+                        break;
+                    case IMG_FILTER_COLORIZE:
+                        $this->colorize($imt, $filter, $arg);
+                        break;
+                    case IMG_FILTER_EDGEDETECT:
+                        $this->edgedetect($imt, $filter, $arg);
+                        break;
+                    case IMG_FILTER_SMOOTH:
+                        $this->smooth($imt, $filter, $arg);
+                        break;
+                    case IMG_FILTER_PIXELATE:
+                        $this->pixelete($imt, $filter, $arg);
+                        break;
+                    case IMG_FILTER_SCATTER:
+                        $this->scatter($imt, $filter, $arg);
+                        break;
+                };
+            
+                if (!$this->validateArgs($filter, $arg)) {
+                    return false;
+                }
+                
+            } else {
+                $result = imagefilter($imt, $filter);
+            }
             $this->makeImage($imt, $imageDestination);
+        } else {
+            $this->messages['errors'][] = "Failed to create image from source.";
+            return false;
         }
 
-        @imagedestroy($imt);
+        if (imagedestroy($imt)){
+            $this->messages['errors'][] = "Failed to destroy image.";
+        }
 
         return $result;
     }
 
-    private function implodeMultidimensionalArray($array): string
+    /**
+     * Apply brightnes filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     * 
+     */
+    private function brightnes(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0]);
+    }
+
+    /**
+     * Apply contrast filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     * 
+     */
+    private function contrast(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0]);
+    }
+
+    /**
+     * Apply colorize filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     * 
+     */
+    private function colorize(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0], $arg[1], $arg[2]);
+    }
+
+    /**
+     * Apply edge detect filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     * 
+     */
+    private function edgedetect(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0]);
+    }
+
+    /**
+     * Apply smooth filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     */
+    private function smooth(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0]);
+    }
+
+    /**
+     * Apply pixelate filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     * 
+     */
+    private function pixelete(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0], $arg[1]);
+    }
+
+    /**
+     * Apply scatter filter to image.
+     * @param \GdImage $imt
+     * @param int $filter
+     * @param mixed $arg
+     * @return bool
+     * 
+     */
+    private function scatter(\GdImage $imt, int $filter, $arg): bool
+    {   
+        return imagefilter($imt, $filter, $arg[0], $arg[1]);
+    }
+
+    /**
+     * Validate filter arguments.
+     * @param int $filter
+     * @param mixed $args
+     * @return bool
+     * 
+     */
+    private function validateArgs(int $filter, $args): bool
     {
-        $val = '';
-        if (is_array($array) && count($array) > 0) {
-            foreach ($array as $key => $element) {
-                if (is_array($element)) {
-                    $val .= $this->implodeMultidimensionalArray($element);
-                } else {
-                    $val .= $key . '=' . $element . '&';
-                }
-            }
-        } else {
-            $val = $array;
+        $definition = $this->argsDefinitions[$filter] ?? null;
+        $filtername = $this->getFilterName($filter);
+
+        if ($definition === null) {
+            $this->messages['errors'][] = "Filter " . $filtername . " demands argiments: \n" . var_export($definition, true); //$this->implodeMultidimensionalArray($argsDefinitions);
+            return false;
         }
-        return rtrim($val, '&');
+
+        if ($definition['arg_count'] !== count($args)) {
+            $this->messages['errors'][] = "Filter " . $filtername . " demands " . $definition['arg_count'] . " arguments, but got " . count($args) . ".";
+            $this->messages['errors'][] = "Filter " . $filtername . " demands arguments llike: " . print_r($definition['range'], true) . ".";
+            return false;
+        }
+
+        return true;
+    }
+
+    private function getFilterName(int $filter): string
+    {
+        $filterNames = [
+            IMG_FILTER_NEGATE => 'Negate',
+            IMG_FILTER_GRAYSCALE => 'Grayscale',
+            IMG_FILTER_GAUSSIAN_BLUR => 'Gaussian Blur',
+            IMG_FILTER_SELECTIVE_BLUR => 'Selective Blur',
+            IMG_FILTER_EMBOSS => 'Emboss',
+            IMG_FILTER_MEAN_REMOVAL => 'Mean Removal',
+            IMG_FILTER_BRIGHTNESS => 'Brightness',
+            IMG_FILTER_CONTRAST => 'Contrast',
+            IMG_FILTER_COLORIZE => 'Colorize',
+            IMG_FILTER_EDGEDETECT => 'Edge Detect',
+            IMG_FILTER_SMOOTH => 'Smooth',
+            IMG_FILTER_PIXELATE => 'Pixelate',
+            IMG_FILTER_SCATTER => 'Scatter'
+        ];
+
+        return $filterNames[$filter] ?? "Unknown filter";
     }
 
     /**
