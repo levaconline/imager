@@ -15,7 +15,7 @@
 > Args: depending on filter different args needs (some filters not accept any arg)  
 > E.G. Following should convert image in grayscale: $php demo-filter.php "/path/to/image/file" "/path/to/image/file2" 1  
 >  
-> Filters for apply without:  
+> Filters for apply without args:  
 > IMG_FILTER_NEGATE = 0  
 > IMG_FILTER_GRAYSCALE = 1  
 > IMG_FILTER_GAUSSIAN_BLUR = 7  
@@ -23,5 +23,14 @@
 > IMG_FILTER_EMBOSS = 6  
 > IMG_FILTER_MEAN_REMOVAL = 9
 >
->  
+> Filters for apply with args:  
+> IMG_FILTER_BRIGHTNESS = 2  (1 arg)  
+> IMG_FILTER_CONTRAST = 3  (1 arg)  
+> IMG_FILTER_COLORIZE = 4  (3 args)  
+> IMG_FILTER_EDGEDETECT = 5  (1 arg)  
+> IMG_FILTER_SMOOTH = 10  (1 arg)  
+> IMG_FILTER_PIXELATE = 11  (2 arg)  
+> IMG_FILTER_SCATTER = 12  (2 arg)  
+> 
+
 
